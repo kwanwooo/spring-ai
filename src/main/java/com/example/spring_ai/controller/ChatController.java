@@ -4,6 +4,7 @@ import com.example.spring_ai.dto.ChatRequest;
 import com.example.spring_ai.dto.ChatResponse;
 import com.example.spring_ai.model.ModelProvider;
 import com.example.spring_ai.service.ChatService;
+import jakarta.validation.Valid;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
@@ -34,7 +35,7 @@ public class ChatController {
 	 * </pre>
 	 */
 	@PostMapping
-	public ChatResponse chat(@RequestBody ChatRequest request) {
+	public ChatResponse chat(@RequestBody @Valid ChatRequest request) {
 		ModelProvider provider = resolveProvider(request.provider());
 		String content = isBlank(request.system())
 				? chatService.chat(provider, request.conversationId(), request.message())
@@ -59,13 +60,7 @@ public class ChatController {
 	}
 
 	private ModelProvider resolveProvider(String provider) {
-		if (provider == null || provider.isBlank() || "deepseek".equalsIgnoreCase(provider)) {
-			return ModelProvider.DEEPSEEK;
-		}
-		if ("glm".equalsIgnoreCase(provider)) {
-			return ModelProvider.GLM;
-		}
-		throw new IllegalArgumentException("不支持的模型提供方: " + provider);
+		return ModelProvider.resolve(provider);
 	}
 
 	private boolean isBlank(String value) {

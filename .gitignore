@@ -1,6 +1,8 @@
 HELP.md
 .gradle
 build/
+# RAG 向量库持久化数据
+data/
 !gradle/wrapper/gradle-wrapper.jar
 !**/src/main/**/build/
 !**/src/test/**/build/

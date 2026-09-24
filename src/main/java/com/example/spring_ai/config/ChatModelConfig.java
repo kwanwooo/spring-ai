@@ -1,10 +1,14 @@
 package com.example.spring_ai.config;
 
+import java.time.Duration;
+
 import org.springframework.ai.chat.client.ChatClient;
 import org.springframework.ai.chat.client.advisor.MessageChatMemoryAdvisor;
 import org.springframework.ai.chat.memory.ChatMemory;
+import org.springframework.ai.chat.model.ChatModel;
 import org.springframework.ai.openai.OpenAiChatModel;
 import org.springframework.ai.openai.OpenAiChatOptions;
+import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
@@ -12,9 +16,9 @@ import org.springframework.context.annotation.Configuration;
 /**
  * 多模型配置。
  *
- * <p>DeepSeek 与 GLM（智谱）均提供 OpenAI 兼容接口，因此各自构建一个
- * {@link OpenAiChatModel}（base-url / api-key / model 互不相同），
- * 再包装为独立的 {@link ChatClient} bean 供路由选择，并统一挂载会话记忆 Advisor。
+ * <p>DeepSeek 与 GLM（智谱）均提供 OpenAI 兼容接口，各自构建 {@link OpenAiChatModel}，
+ * 再包一层 {@link ResilientChatModel}（重试 + 降级），最后包装为 {@link ChatClient} bean。
+ * 重试/降级发生在 advisor 链之下，保证会话记忆只写入一次。
  */
 @Configuration
 public class ChatModelConfig {
@@ -33,21 +37,39 @@ public class ChatModelConfig {
 	}
 
 	@Bean
-	public ChatClient deepseekChatClient(@Value("${spring.ai.deepseek.base-url}") String baseUrl,
+	public OpenAiChatModel deepseekChatModel(@Value("${spring.ai.deepseek.base-url}") String baseUrl,
 			@Value("${spring.ai.deepseek.api-key}") String apiKey,
 			@Value("${spring.ai.deepseek.model}") String model) {
-		return buildChatClient(baseUrl, apiKey, model);
+		return buildModel(baseUrl, apiKey, model);
 	}
 
 	@Bean
-	public ChatClient glmChatClient(@Value("${spring.ai.glm.base-url}") String baseUrl,
+	public OpenAiChatModel glmChatModel(@Value("${spring.ai.glm.base-url}") String baseUrl,
 			@Value("${spring.ai.glm.api-key}") String apiKey,
 			@Value("${spring.ai.glm.model}") String model) {
-		return buildChatClient(baseUrl, apiKey, model);
+		return buildModel(baseUrl, apiKey, model);
 	}
 
-	private ChatClient buildChatClient(String baseUrl, String apiKey, String model) {
-		OpenAiChatModel chatModel = OpenAiChatModel.builder()
+	@Bean
+	public ChatClient deepseekChatClient(@Qualifier("deepseekChatModel") ChatModel deepseek,
+			@Qualifier("glmChatModel") ChatModel glm,
+			@Value("${spring.ai.fallback.enabled:true}") boolean fallbackEnabled,
+			@Value("${spring.ai.fallback.max-attempts:2}") int maxAttempts,
+			@Value("${spring.ai.fallback.backoff-ms:1000}") long backoffMs) {
+		return buildChatClient(deepseek, glm, fallbackEnabled, maxAttempts, backoffMs);
+	}
+
+	@Bean
+	public ChatClient glmChatClient(@Qualifier("glmChatModel") ChatModel glm,
+			@Qualifier("deepseekChatModel") ChatModel deepseek,
+			@Value("${spring.ai.fallback.enabled:true}") boolean fallbackEnabled,
+			@Value("${spring.ai.fallback.max-attempts:2}") int maxAttempts,
+			@Value("${spring.ai.fallback.backoff-ms:1000}") long backoffMs) {
+		return buildChatClient(glm, deepseek, fallbackEnabled, maxAttempts, backoffMs);
+	}
+
+	private OpenAiChatModel buildModel(String baseUrl, String apiKey, String model) {
+		return OpenAiChatModel.builder()
 			.options(OpenAiChatOptions.builder()
 				.baseUrl(baseUrl)
 				.apiKey(apiKey)
@@ -55,7 +77,13 @@ public class ChatModelConfig {
 				.temperature(0.7)
 				.build())
 			.build();
-		return ChatClient.builder(chatModel)
+	}
+
+	private ChatClient buildChatClient(ChatModel primary, ChatModel fallback, boolean fallbackEnabled, int maxAttempts,
+			long backoffMs) {
+		ChatModel model = new ResilientChatModel(primary, fallbackEnabled ? fallback : null, maxAttempts,
+				Duration.ofMillis(backoffMs));
+		return ChatClient.builder(model)
 			.defaultSystem(DEFAULT_SYSTEM)
 			.defaultAdvisors(MessageChatMemoryAdvisor.builder(this.chatMemory).build())
 			.build();
