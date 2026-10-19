@@ -98,6 +98,9 @@ public class ChatService {
 	}
 
 	private ChatClient client(ModelProvider provider) {
+		if (provider == null) {
+			throw new IllegalArgumentException("不支持的模型提供方: null");
+		}
 		ChatClient chatClient = this.chatClients.get(provider);
 		if (chatClient == null) {
 			throw new IllegalArgumentException("不支持的模型提供方: " + provider);
