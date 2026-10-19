@@ -37,7 +37,6 @@ Spring Boot 4.0.8 + Spring AI 2.0.0 + JDK 17。DeepSeek/GLM 双模型对话，�
 - 模型手动构建，**`spring.ai.retry.*` 自动配置对它们无效**（所以重试是自己在 `ResilientChatModel` 实现的）。
 - 会话记忆持久化的是**滑动窗口（10 条）而非全量历史**；`JdbcChatMemoryRepository` 会**过滤 tool 消息**（`ToolResponseMessage` / 带 tool call 的 `AssistantMessage`）。
 - 嵌入模型只有 **GLM**（DeepSeek 无公开 embedding 接口），需 GLM key 开通 `embedding-3` 权限。
-- `.env` **不会被 Spring Boot 自动加载**（项目未引入 dotenv），配置走系统环境变量。
 
 ## 约定
 
