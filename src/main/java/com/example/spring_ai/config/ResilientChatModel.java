@@ -2,6 +2,7 @@ package com.example.spring_ai.config;
 
 import java.io.IOException;
 import java.time.Duration;
+import java.util.Locale;
 import java.util.concurrent.TimeoutException;
 
 import org.slf4j.Logger;
@@ -105,7 +106,7 @@ public class ResilientChatModel implements ChatModel {
 			}
 			String msg = e.getMessage();
 			if (msg != null) {
-				String m = msg.toLowerCase();
+				String m = msg.toLowerCase(Locale.ROOT);
 				if (m.contains("429") || m.contains("too many requests") || m.contains("timeout")
 						|| m.contains("timed out") || m.matches(".*\\b5[0-9]{2}\\b.*") || m.matches(".*\\b408\\b.*")) {
 					return true;

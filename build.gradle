@@ -2,6 +2,7 @@ plugins {
 	id 'java'
 	id 'org.springframework.boot' version '4.0.8'
 	id 'io.spring.dependency-management' version '1.1.7'
+	id 'checkstyle'
 }
 
 group = 'com.example'
@@ -15,7 +16,7 @@ java {
 
 repositories {
 	// 默认从阿里云拉取
-	maven { url 'https://maven.aliyun.com/repository/public/' }
+	maven { url = 'https://maven.aliyun.com/repository/public/' }
 	mavenCentral()
 }
 
@@ -41,6 +42,13 @@ dependencies {
 	testCompileOnly 'org.projectlombok:lombok'
 	testRuntimeOnly 'org.junit.platform:junit-platform-launcher'
 	testAnnotationProcessor 'org.projectlombok:lombok'
+}
+
+checkstyle {
+	toolVersion = '10.12.4'
+	configFile = file('config/checkstyle/checkstyle.xml')
+	// 让 check 任务依赖 checkstyle，跑 ./gradlew check 时自动触发
+	maxWarnings = 0
 }
 
 tasks.named('test') {
