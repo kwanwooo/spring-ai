@@ -40,4 +40,10 @@ out/
 /.env
 
 ### Claude Code
-.claude/settings.json
+.claude/settings.local.json
+
+### codex
+.codex/config.local.toml
+
+### reports
+reports/
