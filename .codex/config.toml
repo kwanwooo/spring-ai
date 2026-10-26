@@ -1,0 +1,29 @@
+approval_policy = "on-request"
+
+default_permissions = "project"
+
+[permissions.project]
+description = "Spring AI：工作区可写，系统其余部分只读，密钥文件禁止访问，命令默认无网络"
+
+[permissions.project.workspace_roots]
+'C:\Users\wan42\IdeaProjects\spring-ai' = true
+
+[permissions.project.filesystem]
+':root' = "read"
+'C:\Users\wan42\IdeaProjects\spring-ai\.env' = "deny"
+'C:\Users\wan42\IdeaProjects\spring-ai\.env.local' = "deny"
+'C:\Users\wan42\IdeaProjects\spring-ai\.env.development' = "deny"
+'C:\Users\wan42\IdeaProjects\spring-ai\.env.production' = "deny"
+'C:\Users\wan42\IdeaProjects\spring-ai\secrets' = "deny"
+
+[permissions.project.network]
+enabled = true
+
+[[hooks.PostToolUse]]
+matcher = "apply_patch"
+
+[[hooks.PostToolUse.hooks]]
+type = "command"
+command = 'powershell -NoProfile -Command "Write-Host \"文件已修改，建议检查一下修改了什么\""'
+timeout = 15
+statusMessage = "Post-edit notification"
